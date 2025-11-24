@@ -1,30 +1,29 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_application_tflow/native_comunicator.dart';
 import 'package:flutter_application_tflow/speech_service.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'service/tensor_flow.dart';
-
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  final tfService = TensorFlow();
+  /* final tfService = TensorFlow(); */
   final speechService = SpeechService();
-  await tfService.loadModel();
-  runApp( MainApp(tfService: tfService, speechService: speechService));
+  /* await tfService.loadModel(); */
+    runApp( MainApp( speechService: speechService));
 }
 
 class MainApp extends StatelessWidget {
-  final TensorFlow tfService;
+  /* final TensorFlow tfService; */
   final SpeechService speechService;
-  const MainApp({super.key, required this.tfService, required this.speechService});
+  const MainApp({super.key, required this.speechService});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: ModelScreen(
-        tfService: tfService,
         speechService: speechService,
       ),
     );
@@ -32,9 +31,8 @@ class MainApp extends StatelessWidget {
 }
 
 class ModelScreen extends StatefulWidget {
-  final TensorFlow tfService;
   final SpeechService speechService;
-  const ModelScreen({super.key, required this.tfService, required this.speechService});
+  const ModelScreen({super.key, required this.speechService});
 
   @override
   ModelScreenState createState() => ModelScreenState();
@@ -64,16 +62,29 @@ class ModelScreenState extends State<ModelScreen> {
 
 
     try {
-      var result = await widget.tfService.runModel(_image!);
+      /* var result = await widget.tfService.runModel(_image!);
       setState(() {
         _output = "Model output: $result";
-      });
+      }); */
 
     } catch (e) {
       debugPrint("Error preparing input: $e");
       setState(() {
         _output = "Error running model";
       });
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    try {
+      final String? imagePath = await NativeComunicator.invokeNativeMethod('takePhoto', {});
+      if(imagePath != null){
+        setState(() {
+          _image = File(imagePath);
+        });
+      }
+    } on PlatformException catch (e) {
+      _output = "Error taking photo: ${e.message}";
     }
   }
 
@@ -115,7 +126,11 @@ class ModelScreenState extends State<ModelScreen> {
             Text(
               _output, 
               textAlign: TextAlign.center,
-            ),            
+            ),    
+            ElevatedButton(
+              onPressed: _takePhoto,
+              child: const Text('Take Photo'),
+            )
           ],
         ),
       ),
